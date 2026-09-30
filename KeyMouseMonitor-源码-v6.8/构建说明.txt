@@ -1,0 +1,35 @@
+﻿KeyMouseMonitor 源码包 —— 32 位(win7) 与 64 位共用同一套源码
+============================================================
+本包就是生成桌面那两个 exe 的完整源码（r6.8）。
+两个架构只有"用哪个 Python 解释器 + 哪个 PyInstaller"不同，代码完全一样。
+
+【构建 64 位版】需要 64 位 Python 3.14 + PyInstaller
+  python -m PyInstaller --noconfirm --clean --onefile --noconsole ^
+    --name KeyMouseMonitor --icon app.ico --add-data "app.ico;." ^
+    --distpath dist --workpath build --specpath build main.py
+
+【构建 32 位(win7)版】需要 32 位 Python 3.8 + PyInstaller 5.13.2
+  py -3.8-32 -m PyInstaller --noconfirm --clean --onefile --noconsole ^
+    --name KeyMouseMonitor-win7 --icon app.ico --add-data "app.ico;." ^
+    --distpath dist-x86 --workpath build-x86 --specpath build-x86 main.py
+
+【本版包含的修复】
+  1) 缩放适配：键位尺寸改为宽高双向适配，窗口拖矮时键盘+鼠标统计区整体等比
+     缩小、始终完整可见（旧版只按宽度算，画布会被裁掉底部鼠标区）。
+  2) 开机自启：删除计划任务后回查确认，失败不再静默；非管理员时自动提权删除
+     （最高权限 RunLevel=HighestAvailable 的任务必须管理员才能删）。
+  3) 32 位专属·窗口置顶强化（ui/app.py 的 _keep_on_top / top_loop）：
+     HWND_TOP 重新入队 + TIME_CRITICAL 线程 + timeBeginPeriod(1) 1ms 计时器
+     + sleep(0) 忙等 + 主动把压在自己上方的 topmost 窗口按到乐队底部。
+     询问框打开时只抬询问框、绝不抬主窗口，两个窗口不会互抢 Z 序。
+
+【验证脚本（tools/ 下，随包附带）】
+  python -X utf8 main.py --selftest                  内置自检
+  python -X utf8 tools/autostart_check.py            自启删除逻辑（临时任务名，安全）
+  python -X utf8 tools/resize_math_check.py          缩放适配公式数值验证
+  python -X utf8 tools/close_dialog_check.py --exe <exe>   关闭流程 + 询问框不打架
+
+【注意】
+  build/ 与 build-x86/ 里的 .spec 文件脚本路径仍指向旧位置
+  (C:\Users\17968\Desktop\1\keymouse-monitor\main.py)，直接跑 spec 会报
+  script not found；用上面的命令行参数打包即可，或自行修正 spec 路径。
